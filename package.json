@@ -1,0 +1,23 @@
+{
+  "name": "2025-project-trip-wiki",
+  "version": "1.0.0",
+  "description": "[Trip Wiki] API 주소",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chdev-kr/2025-proejct-trip-wiki.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/chdev-kr/2025-proejct-trip-wiki/issues"
+  },
+  "homepage": "https://github.com/chdev-kr/2025-proejct-trip-wiki#readme",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
