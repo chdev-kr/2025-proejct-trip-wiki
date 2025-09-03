@@ -1,5 +1,4 @@
 const API_URL = "https://trip-wiki-api.vercel.app/";
-
 //LIST API
 export const request = async (startIdx, region, sortBy, searchWord) => {
   try {
