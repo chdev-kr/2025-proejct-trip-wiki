@@ -1,43 +1,59 @@
-const API_URL = "https://trip-wiki-api.vercel.app/";
+export default function CityList({
+  $app,
+  initialState,
+  handleItemClick,
+  handleLoadMore,
+}) {
+  this.state = initialState;
+  this.$target = document.createElement("div");
+  this.$target.className = "city-list";
 
-//LIST API
-export const request = async (startIdx, region, sortBy, searchWord) => {
-  try {
-    let url = `${API_URL}`;
-    if (region && region !== "All") {
-      url += `${region}?start=${startIdx}`;
-    } else {
-      url += `?start=${startIdx}`;
-    }
-    if (sortBy) {
-      url += `&sort=${sortBy}`;
-    }
-    if (searchWord) {
-      url += `&search=${searchWord}`;
-    }
-    console.log(url);
-    //API 호출
-    const response = await fetch(url);
-    if (response) {
-      let data = await response.json();
-      console.log(data);
-      return data;
-    }
-  } catch (err) {
-    console.log(err);
-  }
-};
+  this.handleItemClick = handleItemClick;
+  this.handleLoadMore = handleLoadMore;
 
-//DETAIL API
-export const requestCityDetail = async (cityId) => {
-  try {
-    const response = await fetch(`${API_URL}city/${cityId}`);
-    if (response) {
-      let data = await response.json();
-      console.log(data);
-      return data;
+  $app.appendChild(this.$target);
+
+  this.template = () => {
+    let temp = `<div class="city-items-container">`;
+    if (this.state) {
+      this.state.cities.forEach((elm) => {
+        temp += `
+                  <div class="city-item" id=${elm.id}>
+                      <img src=${elm.image}></img>
+                      <div class="city-item-info">${elm.city}, ${elm.country}</div>
+                      <div class="city-item-score">⭐️ ${elm.total}</div>
+                  </div>
+             `;
+      });
+      temp += `</div>`;
     }
-  } catch (err) {
-    console.log(err);
-  }
-};
+    return temp;
+  };
+
+  this.render = () => {
+    this.$target.innerHTML = this.template();
+    this.$target.querySelectorAll("div.city-item").forEach((elm) => {
+      elm.addEventListener("click", () => {
+        this.handleItemClick(elm.id);
+      });
+    });
+
+    if (!this.state.isEnd) {
+      const $loadMoreButton = document.createElement("button");
+      $loadMoreButton.className = "add-items-btn";
+      $loadMoreButton.textContent = "+ 더보기";
+      this.$target.appendChild($loadMoreButton);
+
+      $loadMoreButton.addEventListener("click", () => {
+        this.handleLoadMore();
+      });
+    }
+  };
+
+  this.setState = (newState) => {
+    this.state = newState;
+    this.render();
+  };
+
+  this.render();
+}

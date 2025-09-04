@@ -1,59 +1,212 @@
-export default function CityList({
-  $app,
-  initialState,
-  handleItemClick,
-  handleLoadMore,
-}) {
-  this.state = initialState;
-  this.$target = document.createElement("div");
-  this.$target.className = "city-list";
+//COMPONENTS
+import Header from "./components/Header.js";
+import RegionList from "./components/RegionList.js";
+import CityList from "./components/CityList.js";
+import CityDetail from "./components/CityDetail.js";
+//API
+import { request, requestCityDetail } from "./components/api.js";
 
-  this.handleItemClick = handleItemClick;
-  this.handleLoadMore = handleLoadMore;
-
-  $app.appendChild(this.$target);
-
-  this.template = () => {
-    let temp = `<div class="city-items-container">`;
-    if (this.state) {
-      this.state.cities.forEach((elm) => {
-        temp += `
-                  <div class="city-item" id=${elm.id}>
-                      <img src=${elm.image}></img>
-                      <div class="city-item-info">${elm.city}, ${elm.country}</div>
-                      <div class="city-item-score">⭐️ ${elm.total}</div>
-                  </div>
-             `;
-      });
-      temp += `</div>`;
+export default function App($app) {
+  const getSortBy = () => {
+    if (window.location.search) {
+      return window.location.search.split("sort=")[1].split("&")[0];
     }
-    return temp;
+    return "total";
   };
 
-  this.render = () => {
-    this.$target.innerHTML = this.template();
-    this.$target.querySelectorAll("div.city-item").forEach((elm) => {
-      elm.addEventListener("click", () => {
-        this.handleItemClick(elm.id);
-      });
+  const getSearchWord = () => {
+    if (window.location.search && window.location.search.includes("search=")) {
+      return window.location.search.split("search=")[1];
+    }
+    return "";
+  };
+
+  this.state = {
+    startIdx: 0,
+    sortBy: getSortBy(),
+    region: window.location.pathname.replace("/", ""),
+    searchWord: getSearchWord(),
+    cities: "",
+    currentPage: window.location.pathname,
+  };
+
+  const renderHeader = () => {
+    new Header({
+      $app,
+      initialState: {
+        currentPage: this.state.currentPage,
+        sortBy: this.state.sortBy,
+        searchWord: this.state.searchWord,
+      },
+      handleSortChange: async (sortBy) => {
+        const pageUrl = `/${this.state.region}?sort=${sortBy}`;
+        history.pushState(
+          null,
+          null,
+          this.state.searchWord
+            ? pageUrl + `&search=${this.state.searchWord}`
+            : pageUrl
+        );
+        const cities = await request(
+          0,
+          this.state.region,
+          sortBy,
+          this.state.searchWord
+        );
+        this.setState({
+          ...this.state,
+          startIdx: 0,
+          sortBy: sortBy,
+          cities: cities,
+        });
+      },
+      handleSearch: async (searchWord) => {
+        history.pushState(
+          null,
+          null,
+          `/${this.state.region}?sort=${this.state.sortBy}&search=${searchWord}`
+        );
+        const cities = await request(
+          0,
+          this.state.region,
+          this.state.sortBy,
+          searchWord
+        );
+        this.setState({
+          ...this.state,
+          startIdx: 0,
+          cities: cities,
+          searchWord: searchWord,
+        });
+      },
     });
+  };
 
-    if (!this.state.isEnd) {
-      const $loadMoreButton = document.createElement("button");
-      $loadMoreButton.className = "add-items-btn";
-      $loadMoreButton.textContent = "+ 더보기";
-      this.$target.appendChild($loadMoreButton);
+  const renderRegionList = () => {
+    new RegionList({
+      $app,
+      initialState: this.state.region,
+      handleRegion: async (region) => {
+        history.pushState(null, null, `/${region}?sort=total`);
+        const cities = await request(0, region, "total");
+        this.setState({
+          ...this.state,
+          startIdx: 0,
+          sortBy: "total",
+          region: region,
+          cities: cities,
+          searchWord: "",
+          currentPage: `/${region}`,
+        });
+      },
+    });
+  };
 
-      $loadMoreButton.addEventListener("click", () => {
-        this.handleLoadMore();
-      });
+  const renderCityList = () => {
+    new CityList({
+      $app,
+      initialState: this.state.cities,
+      handleItemClick: async (id) => {
+        history.pushState(null, null, `/city/${id}`);
+        this.setState({
+          ...this.state,
+          currentPage: `/city/${id}`,
+        });
+      },
+      handleLoadMore: async () => {
+        const newStartIdx = this.state.startIdx + 40;
+        const newCities = await request(
+          newStartIdx,
+          this.state.region,
+          this.state.sortBy
+        );
+        this.setState({
+          ...this.state,
+          startIdx: newStartIdx,
+          cities: {
+            ...this.state.cities,
+            cities: [...this.state.cities.cities, ...newCities.cities],
+            isEnd: newCities.isEnd,
+          },
+        });
+      },
+    });
+  };
+
+  const renderCityDetail = async (cityId) => {
+    try {
+      const cityDetailData = await requestCityDetail(cityId);
+      new CityDetail({ $app, initialState: cityDetailData });
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const render = async () => {
+    const path = this.state.currentPage;
+    $app.innerHTML = "";
+    // 상세 페이지로 이동
+    if (path.startsWith("/city/")) {
+      const cityId = path.split("/city/")[1];
+      renderHeader();
+      renderCityDetail(cityId);
+    } else {
+      renderHeader();
+      renderRegionList();
+      renderCityList();
     }
   };
 
   this.setState = (newState) => {
     this.state = newState;
-    this.render();
+    render();
   };
 
-  this.render();
+  const init = async () => {
+    const path = this.state.currentPage;
+    // 메인 페이지
+    if (!path.startsWith("/city/")) {
+      const cities = await request(
+        this.state.startIdx,
+        this.state.region,
+        this.state.sortBy,
+        this.state.searchWord
+      );
+      this.setState({
+        ...this.state,
+        cities: cities,
+      });
+    } //상세 페이지
+    else {
+      render();
+    }
+  };
+
+  window.addEventListener("popstate", async () => {
+    const urlPath = window.location.pathname;
+
+    const prevRegion = urlPath.replace("/", "");
+    const prevPage = urlPath;
+    const prevSortBy = getSortBy();
+    const prevSearchWord = getSearchWord();
+    const prevStartIdx = 0;
+    const prevCities = await request(
+      prevStartIdx,
+      prevRegion,
+      prevSortBy,
+      prevSearchWord
+    );
+
+    this.setState({
+      ...this.state,
+      startIdx: prevStartIdx,
+      sortBy: prevSortBy,
+      region: prevRegion,
+      currentPage: prevPage,
+      searchWord: prevSearchWord,
+      cities: prevCities,
+    });
+  });
+
+  init();
 }
