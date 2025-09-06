@@ -173,8 +173,6 @@ GET https://trip-wiki-api.vercel.app/city/1
 - 무한 스크롤을 통한 데이터 분할 로딩
 - CSS 변수를 활용한 효율적인 스타일 관리
 
-## 🔧 개발 환경 설정
-
 ### 필수 요구사항
 
 - Node.js (v14 이상)
